@@ -9,3 +9,5 @@ to do list:
    completely optional:
 5. other small mechanics. like jump, momentum based movement, reloading and magazines, gun types, adding sounds etc
 6. HUD. the health bar is already there. you can add more details like player name, kills, deaths, bullets in current magazine etc
+
+note: the objects.py file was my past attempts of drawing the map so ignore it.
