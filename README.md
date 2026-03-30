@@ -1,4 +1,4 @@
-if you are a contributer, then i welcome you and thank you for contributing here. this is not a long term project there, please do not waste a lot of your time polishing or adding a lot of features.
+if you are a contributer, then i welcome you and thank you for contributing here. this is not a long term project therefore, please do not waste a lot of your time polishing or adding a lot of features.
 
 to do list:
 1. sprites. everything right now is made of rectangles which is not very good looking.
