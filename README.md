@@ -3,7 +3,7 @@ if you are a contributer, then i welcome you and thank you for contributing here
 to do list:
 1. sprites. everything right now is made of rectangles which is not very good looking.
 2. bullets. bullets that fire on left click, toward the direction of the mouse pointer from the player. also, function that automatically damages and deletes a bullet on collision.
-3. multiplayer, on wifi. the game should be consisting of at least 2 players. do so with socket programming.
+3. multiplayer, on wifi. the game should be consisting of at least 2 players. should be done with socket programming.
 4. lobby UI. accept name, country, age and other unnecessary information. then connect to a server and start the game.
 
    completely optional:
