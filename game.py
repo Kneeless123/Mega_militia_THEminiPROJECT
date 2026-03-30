@@ -14,7 +14,14 @@ class Player:
         self.y = y
         self.vel = v
         self.gvel = 0
+        self.hp = 100
     
+    def drawHealth(self):
+        x = 20
+        y = 20
+        pygame.draw.rect(screen, (0,0,0), (x-2 ,y-1 , 104, 12))
+        pygame.draw.rect(screen, (200,200,200), (x-1 ,y , 102, 10))
+        pygame.draw.rect(screen, (70,150,50), (x ,y+1 , self.hp, 8))
 
     def draw(self, keys):
         self.update(keys)
@@ -30,10 +37,13 @@ class Player:
             self.y -= self.gvel
             if self.gvel > 5*self.vel:
                 self.gvel = 5*self.vel
+
         if keys[pygame.K_m] or keys[pygame.K_z]:
             self.y -= self.vel
+
         if keys[pygame.K_a]:
             self.x -= self.vel
+            
         if keys[pygame.K_x]:
             self.x += self.vel
 
@@ -71,12 +81,13 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-    screen.fill((170,190,255))
+    screen.fill((170,170,255))
     keys = pygame.key.get_pressed()
 
     drawHouse(100, 100)
     drawHouse(600, 200)
     drawMap()
+    player.drawHealth()
     player.draw(keys)
 
     pygame.display.flip()
