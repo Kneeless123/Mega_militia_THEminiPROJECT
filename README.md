@@ -11,6 +11,3 @@ to do list:
 6. HUD. the health bar is already there. you can add more details like player name, kills, deaths, bullets in current magazine etc
 
 note: the objects.py file was my past attempts of drawing the map so ignore it.
-
-nice work
-ok donw
