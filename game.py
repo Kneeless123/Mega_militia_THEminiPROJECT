@@ -1,4 +1,6 @@
 import pygame
+from PIL import image
+import os
 import math
 
 SCREEN_WIDTH = 1100
