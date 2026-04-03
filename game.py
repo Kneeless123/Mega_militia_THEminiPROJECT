@@ -49,12 +49,12 @@ class Player:
             ]
         }
 
-    def drawHealth(self, x_pos=20, y_pos=20):
+    def drawHealth(self, x_pos=20, y_pos=80):
         x, y = x_pos, y_pos
         pygame.draw.rect(screen, (0, 0, 0),       (x-2, y-1, 104, 12))
         pygame.draw.rect(screen, (200, 200, 200),  (x-1, y,   102, 10))
         pygame.draw.rect(screen, (70, 150, 50),    (x,   y+1, self.hp, 8))
-        x, y = x_pos, y_pos*2
+        x, y = x_pos, y_pos + 20
         pygame.draw.rect(screen, (0, 0, 0),       (x-2, y-1, 104, 12))
         pygame.draw.rect(screen, (200, 200, 200),  (x-1, y,   102, 10))
         pygame.draw.rect(screen, (70, 100, 150),    (x,   y+1, self.boost, 8))
@@ -201,7 +201,7 @@ def map(x):
 
 def drawMap():
     for i in range(0, SCREEN_WIDTH):
-        pygame.draw.rect(screen, (80, 120, 60), (i, SCREEN_HEIGHT - map(i) + 10, 1, map(i)))
+        pygame.draw.rect(screen, (155, 118, 83), (i, SCREEN_HEIGHT - map(i) + 10, 1, map(i)))
 
 def drawHouse(x, height):
     pygame.draw.rect(screen, (50, 50, 60), (x, SCREEN_HEIGHT - map(x) - height, 100, SCREEN_HEIGHT))
