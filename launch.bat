@@ -1,32 +1,28 @@
 @echo off
 setlocal enabledelayedexpansion
 
-REM Check if virtual environment exists
-if not exist "venv" (
-    echo [!] Virtual environment not found
+REM Check if 'pygame' virtual environment exists
+if not exist "pygame" (
+    echo [!] Virtual environment 'pygame' not found.
     echo [*] Running setup.bat first...
     call setup.bat
     if %errorlevel% neq 0 (
-        echo [!] Setup failed
+        echo [!] Setup failed.
         pause
         exit /b 1
     )
 )
 
 REM Activate virtual environment
-call venv\Scripts\activate.bat
+call pygame/Scripts/activate
 if %errorlevel% neq 0 (
-    echo [!] Failed to activate virtual environment
-    pause
-    exit /b 1
+    echo [!] Failed to activate virtual environment.
 )
 
-REM Run the game
 echo [*] Launching MEGA MILITIA...
 python game.py
 if %errorlevel% neq 0 (
-    echo [!] Game crashed. Check the error above.
-    pause
+    echo [!] Game closed with an error.
 )
 
 exit /b 0

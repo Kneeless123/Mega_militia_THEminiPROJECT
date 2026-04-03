@@ -4,7 +4,7 @@ import threading
 import time
 from collections import defaultdict
 
-HOST = 'localhost'
+HOST = '0.0.0.0'
 PORT = 5000
 BUFFER_SIZE = 4096
 DISCOVERY_PORT = 5001
@@ -101,14 +101,14 @@ class GameServer:
     
     def broadcast_presence(self):
         """Announce server presence via UDP broadcast"""
+        broadcast_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
-            broadcast_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             broadcast_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             broadcast_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
             
             while self.running:
                 try:
-                    # Get local IP (try connecting to public server to find our IP)
+                    # Get local IP
                     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                     s.connect(("8.8.8.8", 80))
                     local_ip = s.getsockname()[0]
@@ -121,24 +121,22 @@ class GameServer:
                     'ip': local_ip,
                     'port': PORT,
                     'room_code': self.room_code,
-                    'players': len(self.players),
+                    'players': len(self.players) + 1, # Include host
                     'max_players': self.max_players
                 })
                 
                 try:
                     broadcast_socket.sendto(message.encode(), (DISCOVERY_BROADCAST, DISCOVERY_PORT))
+                    # Also send to explicit broadcast address just in case
                     broadcast_socket.sendto(message.encode(), ('255.255.255.255', DISCOVERY_PORT))
                 except:
                     pass
                 
-                time.sleep(0.5)  # Announce every 0.5 second for faster discovery
+                time.sleep(1.0) # Standard 1 second interval
         except Exception as e:
             print(f"Broadcast error: {e}")
         finally:
-            try:
-                broadcast_socket.close()
-            except:
-                pass
+            broadcast_socket.close()
 
 
 class GameClient:

@@ -252,119 +252,42 @@ local_ip = get_local_ip()
 print(f"\n[INFO] This computer's IP: {local_ip}:5000")
 print("[*] Looking for available servers...\n")
 
-# Step 1: Try to connect to localhost first (same machine)
-if check_server_connection("127.0.0.1", 5000):
-    print("[+] Found local server on localhost:5000")
+# --- Multiplayer Connection Logic ---
+print("[*] Searching for local games...")
+servers = discover_servers(timeout=3)
+
+if servers:
+    # Found a game! Join the first one.
+    server_info = servers[0]
+    host = server_info['ip']
+    port = server_info['port']
+    print(f"[+] Found game at {host}:{port}. Joining...")
+    
     game_mode = 'join'
     player_id = -1
     server = None
     client = GameClient(player_id=-1)
-    if client.connect("127.0.0.1", 5000):
-        print("[+] Connected to localhost:5000\n")
-        time.sleep(0.5)
-    else:
-        raise Exception("Failed to connect to localhost")
-else:
-    # Step 2: Try UDP broadcast discovery (works on regular WiFi)
-    servers = discover_servers(timeout=2)
     
-    if servers:
-        # Join first available server
-        print(f"[+] Found {len(servers)} server(s) via broadcast")
-        server_addr = servers[0]['address']
-        host, port = server_addr.split(':')
-        port = int(port)
-        
-        game_mode = 'join'
-        player_id = -1
-        server = None
-        client = GameClient(player_id=-1)
-        
-        if client.connect(host, port):
-            print(f"[+] Connected to {server_addr}\n")
-            time.sleep(0.5)
-        else:
-            print(f"[!] Could not connect to {server_addr}")
-            print("[*] Starting own server instead...\n")
-            game_mode = 'host'
-            server = GameServer(max_players=4)
-            server.start()
-            player_id = 0
-            client = None
-            print(f"[+] Server started on port 5000")
-            print(f"[INFO] This PC's IP: {local_ip}:5000")
-            print("      Tell other players to set: set MEGA_SERVER_IP=" + local_ip)
-            print("      Or copy 'server_ip.txt' file to the other PC\n")
-            
-            # Save IP to file for easy sharing
-            with open('server_ip.txt', 'w') as f:
-                f.write(local_ip)
-            time.sleep(1)
+    if client.connect(host, port):
+        print(f"[+] Connected to host!\n")
     else:
-        # Step 3: No servers found via broadcast (mobile hotspot scenario)
-        print("[!] No servers found via broadcast")
-        print("    (Mobile hotspots often block UDP broadcasts)\n")
-        
-        # Step 4: Check for server IP from environment variable or file
-        import os
-        server_ip = os.environ.get('MEGA_SERVER_IP')
-        
-        if not server_ip:
-            # Check if there's a server_ip.txt file
-            try:
-                with open('server_ip.txt', 'r') as f:
-                    server_ip = f.read().strip()
-            except:
-                server_ip = None
-        
-        if server_ip and server_ip != local_ip:
-            # Try to join specified server
-            print(f"[*] Attempting to join server at {server_ip}:5000...")
-            game_mode = 'join'
-            player_id = -1
-            server = None
-            client = GameClient(player_id=-1)
-            
-            if client.connect(server_ip, 5000):
-                print(f"[+] Connected to {server_ip}:5000\n")
-                time.sleep(0.5)
-            else:
-                print(f"[!] Could not connect to {server_ip}:5000")
-                print("[*] Starting own server instead...\n")
-                game_mode = 'host'
-                server = GameServer(max_players=4)
-                server.start()
-                player_id = 0
-                client = None
-                print(f"[+] Server started on port 5000")
-                print(f"[INFO] This PC's IP: {local_ip}:5000")
-                print("      Tell other players: set MEGA_SERVER_IP=" + local_ip)
-                print("      Or copy 'server_ip.txt' to the other PC\n")
-                
-                # Save IP to file for easy sharing
-                with open('server_ip.txt', 'w') as f:
-                    f.write(local_ip)
-                time.sleep(1)
-        else:
-            # Start hosting (no server found and no IP provided)
-            print("[*] Starting new game server...\n")
-            game_mode = 'host'
-            player_id = 0
-            server = GameServer(max_players=4)
-            server.start()
-            client = None
-            print(f"[+] Server started on port 5000")
-            print(f"[INFO] This PC's IP: {local_ip}:5000")
-            print("")
-            print("      HOW TO CONNECT OTHER PLAYERS:")
-            print("      Option 1: Copy the file 'server_ip.txt' from this PC to the other PC")
-            print("      Option 2: Set environment variable: set MEGA_SERVER_IP=" + local_ip)
-            print("      Option 3: Call: python game.py (if broadcast works)\n")
-            
-            # Save IP to file for easy sharing
-            with open('server_ip.txt', 'w') as f:
-                f.write(local_ip)
-            time.sleep(1)
+        print(f"[!] Connection failed. Starting own server instead.")
+        game_mode = 'host'
+        player_id = 0
+        server = GameServer(max_players=4)
+        server.start()
+        client = None
+else:
+    # No game found. Become the host.
+    print("[!] No games found. Starting new game as host...")
+    game_mode = 'host'
+    player_id = 0
+    server = GameServer(max_players=4)
+    server.start()
+    client = None
+    print(f"[+] Hosting on {local_ip}:5000")
+
+# ------------------------------------
 
 # Initialize network variables
 other_players_data = {}
