@@ -92,9 +92,9 @@ class LobbyGUI:
         
         # Listbox for servers
         listbox_frame = tk.Frame(select_window)
-        listbox_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        listbox_frame.pack(fill=tk.BOTH, padx=10, pady=10)
         
-        listbox = tk.Listbox(listbox_frame, height=10)
+        listbox = tk.Listbox(listbox_frame, height=8)
         listbox.pack(fill=tk.BOTH, expand=True)
         
         scrollbar = tk.Scrollbar(listbox_frame, orient=tk.VERTICAL, command=listbox.yview)
