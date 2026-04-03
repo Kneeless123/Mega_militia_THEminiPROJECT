@@ -22,7 +22,7 @@ class GameServer:
         self.lock = threading.Lock()
         self.max_players = max_players
         self.running = True
-        self.player_counter = 0
+        self.player_counter = 1
         
     def accept_connections(self):
         while self.running and len(self.players) < self.max_players:
@@ -34,6 +34,13 @@ class GameServer:
                     self.player_counter += 1
                     self.players[client_socket] = player_id
                     self.player_data[player_id] = {'x': 550, 'y': 0, 'bullets': [], 'hp': 100}
+                
+                # Send welcome message with player_id
+                welcome_msg = json.dumps({
+                    'type': 'welcome',
+                    'player_id': player_id
+                })
+                client_socket.send(welcome_msg.encode())
                 
                 threading.Thread(target=self.handle_client, args=(client_socket, player_id), daemon=True).start()
                 print(f"Player {player_id} joined from {addr}")
@@ -165,13 +172,19 @@ class GameClient:
                 if not data:
                     break
                 
-                state = json.loads(data)
-                with self.lock:
-                    # Only store other players (not self)
-                    self.other_players = {
-                        pid: pdata for pid, pdata in state['players'].items()
-                        if pid != self.player_id
-                    }
+                msg = json.loads(data)
+                
+                if msg.get('type') == 'welcome':
+                    self.player_id = msg['player_id']
+                else:
+                    # It's a state update
+                    state = msg
+                    with self.lock:
+                        # Only store other players (not self)
+                        self.other_players = {
+                            str(pid): pdata for pid, pdata in state['players'].items()
+                            if str(pid) != str(self.player_id)
+                        }
         except Exception as e:
             print(f"Error receiving updates: {e}")
         finally:

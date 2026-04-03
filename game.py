@@ -23,9 +23,12 @@ class Player:
         self.MaxVel = 1
         self.xvel = 0
         self.yvel = 0
+        self.spawn_pos = (SCREEN_WIDTH / 2, 0)
         self.hp = 100
         self.boost = 100
         self.right = True
+        self.background = pygame.image.load("Sprites/background.png").convert()
+        self.background = pygame.transform.scale(self.background, (SCREEN_WIDTH, SCREEN_HEIGHT))
         self.count = 0
         self.f = 0
         self.facc = 0.0  # float accumulator for animation
@@ -140,10 +143,30 @@ class Player:
         self.count += 1
         self.count = min(60, self.count)
 
-    def draw_remote_player(self, px, py):
-        """Draw another player at position (px, py)"""
+    def respawn(self):
+        self.x, self.y = self.spawn_pos
+        self.hp = 100
+        self.boost = 100
+        self.xvel = 0
+        self.yvel = 0
+
+    def draw_remote_player(self, px, py, is_right=True, hp=100):
+        """Draw another player at position (px, py) with additional state"""
         pos = (px - 64, SCREEN_HEIGHT - py - 64)
-        screen.blit(self.animation["idle"][0], pos)
+        
+        # Determine frame based on orientation
+        if is_right:
+            screen.blit(self.animation["idle"][0], pos)
+        else:
+            screen.blit(self.animation["idle"][1], pos)
+            
+        # Draw HP bar for other player
+        hp_width = max(0, min(100, hp))
+        pygame.draw.rect(screen, (0, 0, 0),       (px-52, SCREEN_HEIGHT - py - 75, 104, 12))
+        pygame.draw.rect(screen, (200, 200, 200),  (px-51, SCREEN_HEIGHT - py - 74, 102, 10))
+        # Color based on HP
+        color = (70, 150, 50) if hp > 30 else (200, 50, 50)
+        pygame.draw.rect(screen, color,    (px-50, SCREEN_HEIGHT - py - 73, hp_width, 8))
 
 class Bullet:
     def __init__(self, w, h, spX, spY, x, y, owner_id=0):
@@ -243,10 +266,12 @@ else:
         host = host_address
         port = 5000
     
-    client = GameClient(player_id=None)
+    client = GameClient(player_id=-1)
     if client.connect(host, port):
         print(f"Connected to server at {host}:{port}")
-        time.sleep(0.5)
+        # Wait a moment for the welcome message to be processed
+        time.sleep(1)
+        player_id = client.player_id
     else:
         pygame.quit()
         exit()
@@ -267,7 +292,7 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-    screen.fill((170, 150, 255))
+    screen.blit(player.background, (0, 0))
     keys = pygame.key.get_pressed()
 
     drawHouse(100, 100)
@@ -297,48 +322,54 @@ while running:
             'x': player.x,
             'y': player.y,
             'bullets': [{'x': b.x, 'y': b.y} for b in bullets],
-            'hp': player.hp
+            'hp': player.hp,
+            'right': player.right
         }
-        if player_id in server.player_data:
+        with server.lock:
             server.player_data[player_id] = server_player_data
+            # Host needs to get other player data from the server
+            other_players_data = {
+                pid: pdata for pid, pdata in server.player_data.items()
+                if pid != player_id
+            }
     
     if client:
         client_player_data = {
             'x': player.x,
             'y': player.y,
             'bullets': [{'x': b.x, 'y': b.y} for b in bullets],
-            'hp': player.hp
+            'hp': player.hp,
+            'right': player.right
         }
         client.send_update(client_player_data)
         other_players_data = client.get_other_players()
+        if player_id == -1 and client.player_id is not None:
+             player_id = client.player_id
+             player.player_id = player_id
 
     # Draw other players and their bullets
     for other_id, other_data in other_players_data.items():
         px = other_data.get('x', SCREEN_WIDTH / 2)
         py = other_data.get('y', 0)
         other_hp = other_data.get('hp', 100)
+        other_right = other_data.get('right', True)
         
         # Draw remote player
-        player.draw_remote_player(px, py)
-        
-        # Draw remote player's HP bar
-        hp_width = max(0, min(100, other_hp))
-        pygame.draw.rect(screen, (0, 0, 0),       (px-52, SCREEN_HEIGHT - py - 75, 104, 12))
-        pygame.draw.rect(screen, (200, 200, 200),  (px-51, SCREEN_HEIGHT - py - 74, 102, 10))
-        pygame.draw.rect(screen, (70, 150, 50),    (px-50, SCREEN_HEIGHT - py - 73, hp_width, 8))
+        player.draw_remote_player(px, py, other_right, other_hp)
         
         # Draw remote player's bullets
         for bullet_data in other_data.get('bullets', []):
             bx = bullet_data.get('x', 0)
             by = bullet_data.get('y', 0)
-            pygame.draw.rect(screen, (255, 100, 100), (int(bx), int(SCREEN_HEIGHT - by), 5, 5))
+            pygame.draw.rect(screen, (255, 50, 50), (int(bx), int(SCREEN_HEIGHT - by), 6, 6))
             
             # Check if remote bullet hits local player
-            if (player.x - 32 < bx < player.x + 32 and
-                player.y - 32 < by < player.y + 32):
-                player.hp -= 10
-                if player.hp <= 0:
-                    game_phase = 'dead'
+            if player.hp > 0:
+                dist = math.hypot(player.x - bx, player.y - by)
+                if dist < 40: # Hit radius
+                    player.hp -= 2 # Taking damage
+                    if player.hp <= 0:
+                        game_phase = 'dead'
 
     # Draw and cull local bullets
     for b in bullets[:]:
@@ -357,12 +388,27 @@ while running:
 
     # Draw game info
     font = pygame.font.Font(None, 24)
-    player_count_text = font.render(f"Players: {len(other_players_data) + 1}", True, (0, 0, 0))
+    name_text = font.render(f"Player: {player_name}", True, (255, 255, 255))
+    screen.blit(name_text, (20, 50))
+    
+    player_count_text = font.render(f"Players: {len(other_players_data) + 1}", True, (255, 255, 255))
     screen.blit(player_count_text, (SCREEN_WIDTH - 200, 20))
     
     if game_phase == 'dead':
-        dead_text = pygame.font.Font(None, 50).render("YOU ARE DEAD", True, (200, 0, 0))
-        screen.blit(dead_text, (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 - 25))
+        # Dark overlay
+        overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 150))
+        screen.blit(overlay, (0, 0))
+        
+        dead_text = pygame.font.Font(None, 74).render("YOU ARE DEAD", True, (255, 50, 50))
+        screen.blit(dead_text, (SCREEN_WIDTH // 2 - 200, SCREEN_HEIGHT // 2 - 100))
+        
+        respawn_text = pygame.font.Font(None, 36).render("Press 'R' to Respawn", True, (255, 255, 255))
+        screen.blit(respawn_text, (SCREEN_WIDTH // 2 - 120, SCREEN_HEIGHT // 2))
+        
+        if keys[pygame.K_r]:
+            player.respawn()
+            game_phase = 'playing'
 
     pygame.display.flip()
 
