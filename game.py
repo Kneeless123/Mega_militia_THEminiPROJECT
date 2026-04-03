@@ -1,9 +1,7 @@
 import pygame
 import math
-import tkinter as tk
-from tkinter import messagebox
-from lobby import LobbyGUI
-from network import GameServer, GameClient
+import socket
+from network import GameServer, GameClient, discover_servers
 import threading
 import json
 import time
@@ -222,61 +220,66 @@ def check_bullet_player_collision(bullet, player_x, player_y, player_width=128, 
         return True
     return False
 
-def show_lobby():
-    """Show the tkinter lobby and return (game_mode, player_name, host_address)"""
-    root = tk.Tk()
-    lobby = LobbyGUI(root)
-    root.mainloop()
-    
-    return lobby.game_mode, lobby.player_name, lobby.host_address
+def check_server_connection(ip, port):
+    """Try to connect to a server quickly"""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(1)
+        result = s.connect_ex((ip, port))
+        s.close()
+        return result == 0
+    except:
+        return False
 
 
 pygame.init()
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("MEGA MILITIA - Multiplayer")
 
-# Show lobby
-game_mode, player_name, host_address = show_lobby()
+# Auto-detect: Host or Join
+print("[*] Looking for available servers...")
+servers = discover_servers(timeout=2)
 
-if not game_mode:
-    pygame.quit()
-    exit()
-
-# Initialize network
-player_id = None
-server = None
-client = None
-other_players_data = {}
-
-if game_mode == 'host':
-    # Start server
+if servers:
+    # Join first available server
+    print(f"[+] Found {len(servers)} server(s). Joining first one...")
+    server_addr = servers[0]['address']
+    host, port = server_addr.split(':')
+    port = int(port)
+    
+    game_mode = 'join'
+    player_id = -1
+    server = None
+    client = GameClient(player_id=-1)
+    
+    if client.connect(host, port):
+        print(f"[+] Connected to {server_addr}")
+        time.sleep(0.5)
+    else:
+        print(f"[!] Could not connect to {server_addr}. Starting own server...")
+        game_mode = 'host'
+        server = GameServer(max_players=4)
+        server.start()
+        player_id = 0
+        client = None
+        print(f"[+] Server started on port 5000")
+        time.sleep(1)
+else:
+    # No servers found, start hosting
+    print("[*] No servers found. Starting new game server...")
+    game_mode = 'host'
+    player_id = 0
     server = GameServer(max_players=4)
     server.start()
-    player_id = 0  # Host is always player 0
-    room_code = server.room_code # Get room code for host
-    print(f"Server started. Room Code: {room_code}")
-    screen.fill((170, 150, 255))
-    pygame.display.flip()
+    client = None
+    print(f"[+] Server started on port 5000")
+    print("[*] Waiting for other players to join...")
     time.sleep(1)
-else:
-    # Connect as client
-    if ':' in host_address:
-        host, port = host_address.split(':')
-        port = int(port)
-    else:
-        host = host_address
-        port = 5000
-    
-    client = GameClient(player_id=-1)
-    if client.connect(host, port):
-        print(f"Connected to room {lobby.target_room_code}")
-        # Wait a moment for the welcome message to be processed
-        time.sleep(1)
-        player_id = client.player_id
-        room_code = lobby.target_room_code
-    else:
-        pygame.quit()
-        exit()
+
+# Initialize network variables
+other_players_data = {}
+player_name = f"Player{player_id}"
+room_code = "5000" if game_mode == 'host' else "CLIENT"
 
 player = Player(10, 20, player_id=player_id if player_id is not None else -1)
 running = True

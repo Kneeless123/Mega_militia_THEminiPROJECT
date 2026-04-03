@@ -14,7 +14,7 @@ if not exist "venv" (
 )
 
 REM Activate virtual environment
-call pygame\Scripts\activate.bat
+call venv\Scripts\activate.bat
 if %errorlevel% neq 0 (
     echo [!] Failed to activate virtual environment
     pause
