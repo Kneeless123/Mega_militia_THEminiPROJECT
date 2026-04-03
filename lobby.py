@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import simpledialog, messagebox
 import socket
+from network import discover_servers
+import threading
 
 class LobbyGUI:
     def __init__(self, root):
@@ -42,22 +44,106 @@ class LobbyGUI:
             self.root.after(1000, self.start_game)
     
     def join_game(self):
-        host = simpledialog.askstring("Join Game", "Enter host address (IP:PORT):", initialvalue="localhost:5000")
-        if host:
-            name = simpledialog.askstring("Join Game", "Enter your player name:")
-            if name:
-                self.player_name = name
+        # Get player name first
+        name = simpledialog.askstring("Join Game", "Enter your player name:")
+        if not name:
+            return
+        
+        self.player_name = name
+        
+        # Search for servers
+        self.info_label.config(text="Searching for servers...", fg="blue")
+        self.root.update()
+        
+        # Discover servers in background thread
+        def search_servers():
+            servers = discover_servers(timeout=3)
+            self.root.after(0, lambda: self.show_server_list(servers))
+        
+        threading.Thread(target=search_servers, daemon=True).start()
+    
+    def show_server_list(self, servers):
+        """Show list of discovered servers for user to select from"""
+        if not servers:
+            messagebox.showwarning("No Servers", "No servers found on the network. Try entering a manual address.")
+            self.info_label.config(text="No servers found. Try 'Manual Address'", fg="red")
+            
+            # Option to manually enter address
+            host = simpledialog.askstring("Manual Address", "Enter host address (IP:PORT):", initialvalue="localhost:5000")
+            if host:
                 self.host_address = host
                 self.game_mode = 'join'
-                self.info_label.config(text=f"Connecting to {host}...", fg="green")
-                self.root.update()
-                
-                # Try to connect
                 if self.test_connection(host):
+                    self.info_label.config(text=f"Connecting to {host}...", fg="green")
+                    self.root.update()
                     self.root.after(500, self.start_game)
                 else:
                     messagebox.showerror("Connection Failed", f"Could not connect to {host}")
                     self.info_label.config(text="Connection failed. Try again.", fg="red")
+            return
+        
+        # Create server selection window
+        select_window = tk.Toplevel(self.root)
+        select_window.title("Available Servers")
+        select_window.geometry("400x300")
+        select_window.transient(self.root)
+        
+        tk.Label(select_window, text="Select a Server:", font=("Arial", 12, "bold")).pack(pady=10)
+        
+        # Listbox for servers
+        listbox_frame = tk.Frame(select_window)
+        listbox_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        listbox = tk.Listbox(listbox_frame, height=10)
+        listbox.pack(fill=tk.BOTH, expand=True)
+        
+        scrollbar = tk.Scrollbar(listbox_frame, orient=tk.VERTICAL, command=listbox.yview)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        listbox.config(yscrollcommand=scrollbar.set)
+        
+        # Populate listbox
+        for i, server in enumerate(servers):
+            status = f"{server['players']}/{server['max_players']} players"
+            label = f"{server['address']} ({status})"
+            listbox.insert(tk.END, label)
+        
+        def select_server():
+            if listbox.curselection():
+                index = listbox.curselection()[0]
+                selected = servers[index]
+                self.host_address = selected['address']
+                self.game_mode = 'join'
+                select_window.destroy()
+                
+                self.info_label.config(text=f"Connecting to {self.host_address}...", fg="green")
+                self.root.update()
+                
+                if self.test_connection(self.host_address):
+                    self.root.after(500, self.start_game)
+                else:
+                    messagebox.showerror("Connection Failed", f"Could not connect to {self.host_address}")
+                    self.info_label.config(text="Connection failed. Try again.", fg="red")
+        
+        def manual_entry():
+            select_window.destroy()
+            host = simpledialog.askstring("Manual Address", "Enter host address (IP:PORT):", initialvalue="localhost:5000")
+            if host:
+                self.host_address = host
+                self.game_mode = 'join'
+                if self.test_connection(host):
+                    self.info_label.config(text=f"Connecting to {host}...", fg="green")
+                    self.root.update()
+                    self.root.after(500, self.start_game)
+                else:
+                    messagebox.showerror("Connection Failed", f"Could not connect to {host}")
+                    self.info_label.config(text="Connection failed. Try again.", fg="red")
+        
+        button_frame = tk.Frame(select_window)
+        button_frame.pack(pady=10)
+        
+        tk.Button(button_frame, text="Connect", command=select_server, width=12).pack(side=tk.LEFT, padx=5)
+        tk.Button(button_frame, text="Manual Entry", command=manual_entry, width=12).pack(side=tk.LEFT, padx=5)
+        tk.Button(button_frame, text="Cancel", command=select_window.destroy, width=12).pack(side=tk.LEFT, padx=5)
     
     def test_connection(self, host_addr):
         try:

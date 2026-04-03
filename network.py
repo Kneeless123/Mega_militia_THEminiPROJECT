@@ -7,6 +7,8 @@ from collections import defaultdict
 HOST = 'localhost'
 PORT = 5000
 BUFFER_SIZE = 4096
+DISCOVERY_PORT = 5001
+DISCOVERY_BROADCAST = '<broadcast>'
 
 class GameServer:
     def __init__(self, max_players=4):
@@ -81,10 +83,50 @@ class GameServer:
     
     def start(self):
         threading.Thread(target=self.accept_connections, daemon=True).start()
+        threading.Thread(target=self.broadcast_presence, daemon=True).start()
     
     def stop(self):
         self.running = False
         self.server_socket.close()
+    
+    def broadcast_presence(self):
+        """Announce server presence via UDP broadcast"""
+        try:
+            broadcast_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            broadcast_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            broadcast_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+            
+            while self.running:
+                try:
+                    # Get local IP (try connecting to public server to find our IP)
+                    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    s.connect(("8.8.8.8", 80))
+                    local_ip = s.getsockname()[0]
+                    s.close()
+                except:
+                    local_ip = '127.0.0.1'
+                
+                message = json.dumps({
+                    'type': 'server_announce',
+                    'ip': local_ip,
+                    'port': PORT,
+                    'players': len(self.players),
+                    'max_players': self.max_players
+                })
+                
+                try:
+                    broadcast_socket.sendto(message.encode(), (DISCOVERY_BROADCAST, DISCOVERY_PORT))
+                except:
+                    pass
+                
+                time.sleep(1)  # Announce every 1 second
+        except Exception as e:
+            print(f"Broadcast error: {e}")
+        finally:
+            try:
+                broadcast_socket.close()
+            except:
+                pass
 
 
 class GameClient:
@@ -146,3 +188,48 @@ class GameClient:
         except:
             pass
         self.socket.close()
+
+
+def discover_servers(timeout=3):
+    """Discover available servers on local network via UDP broadcast"""
+    servers = []
+    
+    try:
+        discovery_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        discovery_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        discovery_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        discovery_socket.bind(('', DISCOVERY_PORT))
+        discovery_socket.settimeout(timeout)
+        
+        start_time = time.time()
+        seen_servers = set()
+        
+        while time.time() - start_time < timeout:
+            try:
+                data, addr = discovery_socket.recvfrom(BUFFER_SIZE)
+                message = json.loads(data.decode())
+                
+                if message.get('type') == 'server_announce':
+                    server_key = f"{message['ip']}:{message['port']}"
+                    
+                    # Avoid duplicates
+                    if server_key not in seen_servers:
+                        seen_servers.add(server_key)
+                        servers.append({
+                            'ip': message['ip'],
+                            'port': message['port'],
+                            'players': message.get('players', 0),
+                            'max_players': message.get('max_players', 4),
+                            'address': server_key
+                        })
+            except socket.timeout:
+                break
+            except Exception as e:
+                print(f"Discovery error: {e}")
+                break
+        
+        discovery_socket.close()
+    except Exception as e:
+        print(f"Discovery socket error: {e}")
+    
+    return servers
