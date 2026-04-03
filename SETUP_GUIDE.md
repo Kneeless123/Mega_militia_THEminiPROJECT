@@ -19,11 +19,11 @@ For **Mac/Linux**, see the [Alternative Setup](#alternative-setup-macos-linux) s
 2. Click the green **Code** button
 3. Click **Download ZIP**
 4. Extract the ZIP file to a folder on your computer
-   - Example: `C:\Users\YourUsername\Desktop\MEGA_MILITIA`
+- Example: `C:\Users\YourUsername\Desktop\MEGA_MILITIA`
 
 ### Option B: Clone with Git (For Advanced Users)
 ```bash
-git clone https://github.com/yourusername/MEGA_MILITIA.git
+git clone https://github.com/Kneeless/MEGA_MILITIA.git
 cd MEGA_MILITIA
 ```
 
@@ -40,10 +40,10 @@ cd MEGA_MILITIA
    ========================================
    ```
 4. The script will:
-   - Check if Python is installed
-   - Install Python 3.11 if needed
-   - Create a virtual environment
-   - Install required packages
+- Check if Python is installed
+- Install Python 3.11 if needed
+- Create a virtual environment
+- Install required packages
 
 5. **Wait for completion** - this takes 2-3 minutes the first time
 6. When done, you'll see:
@@ -66,9 +66,9 @@ cd MEGA_MILITIA
 
 1. **Double-click** `launch.bat` in your `MEGA_MILITIA` folder
 2. A **tkinter window** will appear with options:
-   - **Host Game** - Start a game server that others can join
-   - **Join Game** - Connect to someone else's game
-   - **Exit** - Close the lobby
+- **Host Game** - Start a game server that others can join
+- **Join Game** - Connect to someone else's game
+- **Exit** - Close the lobby
 
 ---
 
@@ -81,27 +81,27 @@ cd MEGA_MILITIA
 3. **Game starts!** You're now hosting
 
    The game window shows:
-   - A terrain map at the bottom
-   - Your character (green rectangle)
-   - Your health bar (top-left)
+- A terrain map at the bottom
+- Your character (green rectangle)
+- Your health bar (top-left)
 
 4. **Share with friends:**
-   - Tell them your computer's IP address
-   - Tell them to select "Join Game" and enter your IP with port 5000
-   - Example: `192.168.1.100:5000`
+- Tell them your computer's IP address
+- Tell them to select "Join Game" and enter your IP with port 5000
+- Example: `192.168.1.100:5000`
 
 5. **Controls while playing:**
-   - **A** - Move left
-   - **X** - Move right
-   - **S** - Jump/boost
-   - **Z** - Another movement option
-   - **Left Mouse Click** - Fire bullet toward mouse cursor
+- **A** - Move left
+- **X** - Move right
+- **S** - Jump/boost
+- **Z** - Another movement option
+- **Left Mouse Click** - Fire bullet toward mouse cursor
 
 6. **Damage System:**
-   - Each bullet hit = 10 HP damage
-   - Health regenerates slowly when not hit
-   - When HP reaches 0: "YOU ARE DEAD" message appears
-   - Currently you stay dead (respawn not yet implemented)
+- Each bullet hit = 10 HP damage
+- Health regenerates slowly when not hit
+- When HP reaches 0: "YOU ARE DEAD" message appears
+- Currently you stay dead (respawn not yet implemented)
 
 ### Joining a Game (Playing on Someone Else's Server)
 
@@ -166,8 +166,8 @@ cd MEGA_MILITIA
 
 ### Game Seems Slow or Laggy
 
-**Cause 1: WiFi Connection Quality**
-- Try moving closer to the WiFi router
+**Cause 1: Wi-Fi Connection Quality**
+- Try moving closer to the Wi-Fi router
 - Reduce interference (move away from microwave, etc.)
 
 **Cause 2: Lots of Bullets on Screen**
@@ -185,7 +185,7 @@ cd MEGA_MILITIA
 This reinstalls dependencies in case something broke
 ```
 
-**Step 2:** Delete the `venv` folder and run setup.bat
+**Step 2:** Delete the `pygame` folder and run setup.bat
 ```
 This forces a complete reinstall of the environment
 ```
@@ -195,6 +195,8 @@ This forces a complete reinstall of the environment
 Open Command Prompt and type: python --version
 Should show 3.11.x or higher
 ```
+
+If none of the works, consider opening an issue.
 
 ---
 
@@ -212,36 +214,49 @@ Should show 3.11.x or higher
    brew install python@3.11
    ```
 
-3. **Run setup manually**:
+3. **Clone the Project**:
    ```bash
-   cd ~/Desktop/MEGA_MILITIA
+   git clone https://github.com/Kneeless/MEGA_MILITIA.git
+   cd MEGA_MILITIA
+   ```
+
+4. **Run Setup Manually**:
+   ```bash
    python3.11 -m venv venv
    source venv/bin/activate
    pip install -r requirements.txt
    ```
 
-4. **Launch game**:
+5. **Launch game**:
    ```bash
    python game.py
    ```
 
 ### Linux Users:
 
-```bash
-# Install Python and venv
-sudo apt-get update
-sudo apt-get install python3.11 python3.11-venv python3-tkinter
+1. **Install Python, venv, and Tkinter**:
+   ```bash
+   sudo apt-get update
+   sudo apt-get install python3.11 python3.11-venv python3-tkinter
+   ```
 
-# Clone and setup
-git clone <repo-url>
-cd MEGA_MILITIA
-python3.11 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+2. **Clone Project**:
+   ```bash
+   git clone https://github.com/Kneeless/MEGA_MILITIA.git
+   cd MEGA_MILITIA
+   ```
+   
+3. **Create a Virtual Environment and Install Dependencies**:
+   ```bash
+   python3.11 -m venv venv
+   source venv/bin/activate
+   pip install -r requirements.txt
+   ```
 
-# Launch
-python game.py
-```
+4. **Launch Game**:
+   ```bash
+   python game.py
+   ```
 
 ---
 

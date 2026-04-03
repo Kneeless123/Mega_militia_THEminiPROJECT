@@ -8,7 +8,7 @@ A local network multiplayer shooter game built with Pygame and socket programmin
 
 1. **Download/Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/MEGA_MILITIA.git
+   git clone https://github.com/Kneeless/MEGA_MILITIA.git
    cd MEGA_MILITIA
    ```
 
