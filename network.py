@@ -23,6 +23,7 @@ class GameServer:
         self.max_players = max_players
         self.running = True
         self.player_counter = 1
+        self.room_code = str(__import__('random').randint(1000, 9999))
         
     def accept_connections(self):
         while self.running and len(self.players) < self.max_players:
@@ -117,16 +118,18 @@ class GameServer:
                     'type': 'server_announce',
                     'ip': local_ip,
                     'port': PORT,
+                    'room_code': self.room_code,
                     'players': len(self.players),
                     'max_players': self.max_players
                 })
                 
                 try:
                     broadcast_socket.sendto(message.encode(), (DISCOVERY_BROADCAST, DISCOVERY_PORT))
+                    broadcast_socket.sendto(message.encode(), ('255.255.255.255', DISCOVERY_PORT))
                 except:
                     pass
                 
-                time.sleep(1)  # Announce every 1 second
+                time.sleep(0.5)  # Announce every 0.5 second for faster discovery
         except Exception as e:
             print(f"Broadcast error: {e}")
         finally:
@@ -212,7 +215,7 @@ def discover_servers(timeout=3):
         discovery_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         discovery_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         discovery_socket.bind(('', DISCOVERY_PORT))
-        discovery_socket.settimeout(timeout)
+        discovery_socket.settimeout(0.5) # Shorter timeout per receive attempt
         
         start_time = time.time()
         seen_servers = set()
@@ -223,7 +226,7 @@ def discover_servers(timeout=3):
                 message = json.loads(data.decode())
                 
                 if message.get('type') == 'server_announce':
-                    server_key = f"{message['ip']}:{message['port']}"
+                    server_key = f"{message['ip']}:{message['port']}:{message.get('room_code', '')}"
                     
                     # Avoid duplicates
                     if server_key not in seen_servers:
@@ -231,12 +234,13 @@ def discover_servers(timeout=3):
                         servers.append({
                             'ip': message['ip'],
                             'port': message['port'],
+                            'room_code': message.get('room_code', '0000'),
                             'players': message.get('players', 0),
                             'max_players': message.get('max_players', 4),
-                            'address': server_key
+                            'address': f"{message['ip']}:{message['port']}"
                         })
-            except socket.timeout:
-                break
+            except (socket.timeout, json.JSONDecodeError):
+                continue
             except Exception as e:
                 print(f"Discovery error: {e}")
                 break

@@ -253,7 +253,8 @@ if game_mode == 'host':
     server = GameServer(max_players=4)
     server.start()
     player_id = 0  # Host is always player 0
-    print(f"Server started. Waiting for players...")
+    room_code = server.room_code # Get room code for host
+    print(f"Server started. Room Code: {room_code}")
     screen.fill((170, 150, 255))
     pygame.display.flip()
     time.sleep(1)
@@ -268,10 +269,11 @@ else:
     
     client = GameClient(player_id=-1)
     if client.connect(host, port):
-        print(f"Connected to server at {host}:{port}")
+        print(f"Connected to room {lobby.target_room_code}")
         # Wait a moment for the welcome message to be processed
         time.sleep(1)
         player_id = client.player_id
+        room_code = lobby.target_room_code
     else:
         pygame.quit()
         exit()
@@ -386,8 +388,10 @@ while running:
                         bullets.remove(b)
                     break
 
-    # Draw game info
     font = pygame.font.Font(None, 24)
+    room_text = font.render(f"ROOM CODE: {room_code}", True, (255, 255, 0)) # Yellow for high visibility
+    screen.blit(room_text, (20, 20))
+    
     name_text = font.render(f"Player: {player_name}", True, (255, 255, 255))
     screen.blit(name_text, (20, 50))
     

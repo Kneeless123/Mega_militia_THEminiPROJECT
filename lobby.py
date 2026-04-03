@@ -14,6 +14,7 @@ class LobbyGUI:
         self.game_mode = None  # 'host' or 'join'
         self.player_name = None
         self.host_address = None
+        self.target_room_code = None
         
         self.setup_ui()
     
@@ -23,8 +24,8 @@ class LobbyGUI:
         button_frame = tk.Frame(self.root)
         button_frame.pack(pady=20)
         
-        tk.Button(button_frame, text="Host Game", command=self.host_game, width=15, height=2).pack(pady=10)
-        tk.Button(button_frame, text="Join Game", command=self.join_game, width=15, height=2).pack(pady=10)
+        tk.Button(button_frame, text="Create Room", command=self.host_game, width=15, height=2, bg="#4CAF50", fg="white", font=("Arial", 10, "bold")).pack(pady=10)
+        tk.Button(button_frame, text="Join Room", command=self.join_game, width=15, height=2, bg="#2196F3", fg="white", font=("Arial", 10, "bold")).pack(pady=10)
         tk.Button(button_frame, text="Exit", command=self.root.quit, width=15, height=2).pack(pady=10)
         
         info_frame = tk.Frame(self.root)
@@ -45,22 +46,40 @@ class LobbyGUI:
     
     def join_game(self):
         # Get player name first
-        name = simpledialog.askstring("Join Game", "Enter your player name:")
+        name = simpledialog.askstring("Join Room", "Enter your player name:")
         if not name:
             return
         
         self.player_name = name
         
+        # Get room code
+        code = simpledialog.askstring("Join Room", "Enter 4-digit Room Code:")
+        if not code:
+            return
+        self.target_room_code = code
+        
         # Search for servers
-        self.info_label.config(text="Searching for servers...", fg="blue")
+        self.info_label.config(text=f"Searching for Room {code}...", fg="blue")
         self.root.update()
         
         # Discover servers in background thread
         def search_servers():
-            servers = discover_servers(timeout=3)
-            self.root.after(0, lambda: self.show_server_list(servers))
+            servers = discover_servers(timeout=5) # Increased timeout
+            self.root.after(0, lambda: self.handle_found_servers(servers))
         
         threading.Thread(target=search_servers, daemon=True).start()
+    
+    def handle_found_servers(self, servers):
+        # Automatically select the one with the matching room code
+        matching = [s for s in servers if s['room_code'] == self.target_room_code]
+        
+        if matching:
+            self.host_address = matching[0]['address']
+            self.game_mode = 'join'
+            self.info_label.config(text=f"Room found! Connecting...", fg="green")
+            self.root.after(500, self.start_game)
+        else:
+            self.show_server_list(servers)
     
     def show_server_list(self, servers):
         """Show list of discovered servers for user to select from"""
@@ -104,7 +123,7 @@ class LobbyGUI:
         # Populate listbox
         for i, server in enumerate(servers):
             status = f"{server['players']}/{server['max_players']} players"
-            label = f"{server['address']} ({status})"
+            label = f"Room {server['room_code']} - {server['address']} ({status})"
             listbox.insert(tk.END, label)
         
         def select_server():
