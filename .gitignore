@@ -2,3 +2,4 @@ pygame/
 __pycache__/
 experiment.py
 male_hero_template.png
+.idea/
