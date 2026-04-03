@@ -50,7 +50,9 @@ class GameServer:
             except socket.timeout:
                 continue
             except Exception as e:
-                print(f"Error accepting connection: {e}")
+                # Silence common WinError 10038 if server is shutting down
+                if self.running:
+                    print(f"Error accepting connection: {e}")
     
     def handle_client(self, client_socket, player_id):
         try:
