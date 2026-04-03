@@ -19,6 +19,8 @@ class GameServer:
         
         self.players = {}  # {client_socket: player_id}
         self.player_data = {}  # {player_id: {x, y, bullets, hp}}
+        # Initialize host player (player_id 0)
+        self.player_data[0] = {'x': 550, 'y': 0, 'bullets': [], 'hp': 100}
         self.lock = threading.Lock()
         self.max_players = max_players
         self.running = True
